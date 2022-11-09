@@ -5,29 +5,41 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import { FaSearch } from 'react-icons/fa';
 import { Outlet, useNavigate } from "react-router-dom";
 import Table from 'react-bootstrap/Table';
+import { getCookie } from '../../common.js';
 
 function AccessRuleRow(props) {
     const navigate = useNavigate();
 
+    let siteName = '';
+
+    if (props.data.site_id in props.sites){
+        siteName = props.sites[props.data.site_id].name;
+    }
+
+    let attendeeType = '';
+
+    if (props.data.check_attendee_type in props.codes.attendee_type){
+        attendeeType = props.codes.attendee_type[props.data.check_attendee_type];
+    }
+
     return (
         <tr onClick={() => navigate("/accessRules/" + props.data.id)}>
-            <td>{props.codes.status[props.data.status]}</td>
-            <td>{props.sites[props.data.siteId]}</td>
+            <td>{siteName}</td>
             <td>{props.data.description}</td>
-            <td>{props.codes.attendeeTypeCheck[props.data.attendeeTypeCheck]}</td>
-            <td>{props.codes.ageCheck[props.data.ageCheck]}</td>
-            <td>{props.codes.singlePass[props.data.singlePass]}</td>
+            <td>{attendeeType}</td>
+            <td>{props.codes.check_age[props.data.check_age]}</td>
+            <td>{props.codes.single_pass[props.data.single_pass]}</td>
         </tr>
     );
 }
 
 function AccessRuleRows(props){
-    if (props.data && props.sites) {
+    if (props.data) {
         return (
             <>
                 {
-                    props.data.accessRules.map((item, index) => {
-                        return <AccessRuleRow key={index} data={item} codes={props.data.codes} sites={props.sites} />
+                    props.data.data.map((item, index) => {
+                        return <AccessRuleRow key={index} data={item} codes={props.data.codes} sites={props.data.sites} />
                     })
                 }
             </>
@@ -42,9 +54,7 @@ class AccessRules extends React.Component {
         super(props);
 
         this.state = {
-            data: null,
-
-            sites: null
+            data: null
         }
 
         this.isloading = false;
@@ -60,29 +70,22 @@ class AccessRules extends React.Component {
     }
 
     loadData() {
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/accessRules')
+        fetch('http://api.dg.lazyprojects.com/accessRules', {
+            method: "GET", 
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${getCookie('token')}`,
+                'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+            }
+        })
         .then((response) => {
-            if (response.status == 200) {
+            if (Math.floor(response.status / 100) == 2) {
                 return response.json()
             }
         })
         .then((data) => {
             this.setState({ data: data });
-        });
-
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/sites')
-        .then((response) => {
-            if (response.status == 200) {
-                return response.json()
-            }
-        })
-        .then((data) => {
-            let sites = {}
-            data.sites.map(item => sites[item.id] = `${item.name} (${item.location})`);
-
-            this.setState({
-                sites: sites
-            });
         });
     }
 
@@ -111,7 +114,6 @@ class AccessRules extends React.Component {
                     <Table striped bordered hover>
                         <thead>
                             <tr>
-                                <th>管制狀態</th>
                                 <th>場地名稱</th>
                                 <th>控管原因</th>
                                 <th>身份限制</th>

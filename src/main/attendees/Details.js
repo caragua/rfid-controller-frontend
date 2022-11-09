@@ -10,6 +10,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import { DropDownOptions } from '../Common';
+import { getCookie } from '../../common.js';
 
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 
@@ -20,19 +21,10 @@ class Details extends React.Component {
         this.state = {
             codes: null,
 
-            serial: '',
-            attendeeType: 0,
-            nameCardStatus: 0,
-            nickname: '',
-            realname: '',
-            phone: '',
-            email: '',
-            personalID: '',
-            isMinor: 0,
-            cardUID: '',
-            team: 0,
-
-            status: 1
+            inscriptionNumber:  '',
+            type:               '',
+            nickname:           '',
+            cardNumber:         '',
         }
 
         this.attendeeId = 'new';
@@ -67,25 +59,24 @@ class Details extends React.Component {
         });
     }
 
-    handleSubmit (event) {
-        if (this.attendeeId == "new"){
-            fetch("http://api.rfid-demo.lazyprojects.com/v1/attendees/", {
-                method: "post",
-                body: JSON.stringify({
-                    serial:             this.state.serial,
-                    attendeeType:       this.state.attendeeType,
-                    status:             this.state.status,
-                    nameCardStatus:     this.state.nameCardStatus,
-                    nickname:           this.state.nickname,
-                    realname:           this.state.realname,
-                    phone:              this.state.phone,
-                    email:              this.state.email,
-                    personalID:         this.state.personalID,
-                    isMinor:            this.state.isMinor,
-                    cardUID:            this.state.cardUID,
-                    team:               this.state.team
-                })
-            })            
+    handleSubmit (event) { 
+        let data = new URLSearchParams();
+        data.append('inscription_number',   this.state.inscriptionNumber);
+        data.append('nickname',             this.state.nickname);
+        data.append('type',                 this.state.type);
+        data.append('card_number',          this.state.cardNumber);
+
+        if (this.cardReaderId == "new"){
+            fetch("http://api.dg.lazyprojects.com/attendees/", {
+                method: "POST",
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${getCookie('token')}`,
+                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+                },
+                body: data
+            })             
             .then((response) => {
                 if (response.status == 200) {
                     this.reloadData();
@@ -93,23 +84,16 @@ class Details extends React.Component {
                 }
             });
         }
-        else {            
-            fetch("http://api.rfid-demo.lazyprojects.com/v1/attendees/" + this.attendeeId, {
-                method: "put",
-                body: JSON.stringify({
-                    serial:             this.state.serial,
-                    attendeeType:       this.state.attendeeType,
-                    status:             this.state.status,
-                    nameCardStatus:     this.state.nameCardStatus,
-                    nickname:           this.state.nickname,
-                    realname:           this.state.realname,
-                    phone:              this.state.phone,
-                    email:              this.state.email,
-                    personalID:         this.state.personalID,
-                    isMinor:            this.state.isMinor,
-                    cardUID:            this.state.cardUID,
-                    team:               this.state.team,
-                })
+        else {       
+            fetch("http://api.dg.lazyprojects.com/attendees/" + this.attendeeId, {
+                method: "PUT",
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${getCookie('token')}`,
+                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+                },
+                body: data
             })             
             .then((response) => {
                 if (response.status == 200) {
@@ -121,35 +105,27 @@ class Details extends React.Component {
     }
 
     loadData(condition) {
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/attendees' + condition)
-            .then((response) => {
-                if (response.status == 200) {
-                    return response.json()
-                }
-            })
-            .then((data) => {
-                if (this.attendeeId == 'new') {
-                    this.setState({ codes: data.codes});
-                }
-                else {
-                    this.setState({
-                        codes: data.codes,
+        fetch('http://api.dg.lazyprojects.com/attendees' + condition, {method: "GET", headers: {'Authorization': `Bearer ${getCookie('token')}`}})
+        .then((response) => {
+            if (Math.floor(response.status / 100) == 2) {
+                return response.json()
+            }
+        })
+        .then((result) => {
+            if (this.accessRuleId == 'new') {
+                this.setState({ codes: result.codes });
+            }
+            else {
+                this.setState({
+                    codes: result.codes,
 
-                        serial:             data.attendee.serial,
-                        attendeeType:       data.attendee.attendeeType,
-                        status:             data.attendee.status,
-                        nameCardStatus:     data.attendee.nameCardStatus,
-                        nickname:           data.attendee.nickname,
-                        realname:           data.attendee.realname,
-                        phone:              data.attendee.phone,
-                        email:              data.attendee.email,
-                        personalID:         data.attendee.personalID,
-                        isMinor:            data.attendee.isMinor,
-                        cardUID:            data.attendee.cardUID,
-                        team:               data.attendee.team
-                    });
-                }
-            });
+                    inscriptionNumber:  result.data.inscription_number,
+                    nickname:           result.data.nickname,
+                    type:               result.data.type,
+                    cardNumber:         result.data.card_number,
+                });
+            }
+        });
     }
 
     componentDidMount() {
@@ -162,7 +138,7 @@ class Details extends React.Component {
         if (!this.isloading) {
             this.isloading = true;
             if (attendeeId == 'new') {
-                this.loadData('/?codes');
+                this.loadData('/options');
             }
             else {
                 this.loadData('/' + attendeeId);
@@ -192,15 +168,13 @@ class Details extends React.Component {
                                     <Col>
                                         <Form.Group>
                                             <Form.Label>報名編號</Form.Label>
-                                            <Form.Control name="serial" value={this.state.serial} onChange={this.handleChange}  />
+                                            <Form.Control name="inscriptionNumber" value={this.state.inscriptionNumber} onChange={this.handleChange}  />
                                         </Form.Group>
                                     </Col>
                                     <Col>
                                         <Form.Group>
-                                            <Form.Label>識別證狀態</Form.Label>
-                                            <Form.Select name="nameCardStatus" value={this.state.nameCardStatus} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="nameCardStatus"/>
-                                            </Form.Select>
+                                            <Form.Label>暱稱</Form.Label>
+                                            <Form.Control name="nickname" value={this.state.nickname} onChange={this.handleChange}  />
                                         </Form.Group>
                                     </Col>
                                 </Row>
@@ -208,8 +182,8 @@ class Details extends React.Component {
                                     <Col>
                                         <Form.Group>
                                             <Form.Label>身份別</Form.Label>
-                                            <Form.Select name="attendeeType" value={this.state.attendeeType} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="attendeeType"/>
+                                            <Form.Select name="type" value={this.state.type} onChange={this.handleChange} >
+                                                <DropDownOptions codes={this.state.codes} name="type"/>
                                             </Form.Select>
                                         </Form.Group>
                                     </Col>
@@ -217,77 +191,9 @@ class Details extends React.Component {
                                         <Form.Group>
                                             <Form.Label>卡片號碼</Form.Label>
                                             <InputGroup >
-                                                <Form.Control placeholder="輸入卡片號碼" name="cardUID" value={this.state.cardUID} onChange={this.handleChange} />
+                                                <Form.Control placeholder="輸入卡片號碼" name="cardNumber" value={this.state.cardNumber} onChange={this.handleChange} />
                                                 <Button variant="outline-secondary"><AiOutlineScan /></Button>
                                             </InputGroup>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>報名狀態</Form.Label>
-                                            <Form.Select name="status" value={this.state.status} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="status"/>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>名牌內容</Form.Label>
-                                            <Form.Control as="textarea" rows="2" name="nickname" value={this.state.nickname} onChange={this.handleChange}  />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <hr />
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>姓名</Form.Label>
-                                            <Form.Control name="realname" value={this.state.realname} onChange={this.handleChange}  />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>電話</Form.Label>
-                                            <Form.Control name="phone" value={this.state.phone} onChange={this.handleChange}  />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>身份證末五碼</Form.Label>
-                                            <Form.Control name="personalID" value={this.state.personalID} onChange={this.handleChange}  />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>信箱</Form.Label>
-                                            <Form.Control name="email" value={this.state.email} onChange={this.handleChange}  />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>年齡</Form.Label>
-                                            <Form.Select name="isMinor" value={this.state.isMinor} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="isMinor"/>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <hr />
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>隊伍選擇</Form.Label>
-                                            <Form.Select name="team" value={this.state.team} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="team"/>
-                                            </Form.Select>
                                         </Form.Group>
                                     </Col>
                                 </Row>

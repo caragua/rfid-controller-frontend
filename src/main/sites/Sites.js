@@ -65,7 +65,7 @@ class Sites extends React.Component {
             }
         })
         .then((response) => {
-            if (response.status == 200) {
+            if (Math.floor(response.status / 100) == 2) {
                 return response.json()
             }
         })

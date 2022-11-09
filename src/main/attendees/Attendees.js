@@ -5,21 +5,17 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import { FaSearch } from 'react-icons/fa';
 import { Outlet, useNavigate } from "react-router-dom";
 import Table from 'react-bootstrap/Table';
+import { getCookie } from '../../common.js';
 
 function AttendeeRow(props) {
     const navigate = useNavigate();
 
     return (
         <tr onClick={() => navigate("/attendees/" + props.data.id)}>
-            <td>{props.codes.status[props.data.status]}</td>
-            <td>{props.data.serial}</td>
-            <td>{props.codes.attendeeType[props.data.attendeeType]}</td>
+            <td>{props.data.inscription_number}</td>
+            <td>{props.codes.type[props.data.type]}</td>
             <td>{props.data.nickname}</td>
-            <td>{props.data.cardUID}</td>
-            <td>
-                報到<br />
-                <small>2022-01-01 23:59</small>
-            </td>
+            <td>{props.data.card_number}</td>
         </tr>
     );
 }
@@ -29,7 +25,7 @@ function AttendeeRows(props) {
         return (
             <>
                 {
-                    props.data.attendees.map((item, index) => {
+                    props.data.data.map((item, index) => {
                         return <AttendeeRow key={index} data={item} codes={props.data.codes} />
                     })
                 }
@@ -61,15 +57,23 @@ class Attendees extends React.Component {
     }
 
     loadData() {
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/attendees/')
-            .then((response) => {
-                if (response.status == 200) {
-                    return response.json()
-                }
-            })
-            .then((data) => {
-                this.setState({ data: data });
-            });
+        fetch('http://api.dg.lazyprojects.com/attendees', {
+            method: "GET", 
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${getCookie('token')}`,
+                'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+            }
+        })
+        .then((response) => {
+            if (Math.floor(response.status / 100) == 2) {
+                return response.json()
+            }
+        })
+        .then((data) => {
+            this.setState({ data: data });
+        });
     }
 
     render() {
@@ -98,12 +102,10 @@ class Attendees extends React.Component {
                     <Table striped bordered hover>
                         <thead>
                             <tr>
-                                <th>狀態</th>
                                 <th>編號</th>
                                 <th>身份</th>
                                 <th>暱稱</th>
                                 <th>卡號</th>
-                                <th>動態</th>
                             </tr>
                         </thead>
                         <tbody>

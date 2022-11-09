@@ -112,7 +112,7 @@ class Details extends React.Component {
         if (!this.isloading) {
             this.isloading = true;
             if (siteId == 'new') {
-                this.loadData('/codes');
+                this.loadData('/options');
             }
             else {
                 this.loadData('/' + siteId);
@@ -121,9 +121,7 @@ class Details extends React.Component {
     }
 
     loadData(condition) {
-        let token = getCookie('token');
-
-        fetch('http://api.dg.lazyprojects.com/sites' + condition, {method: "GET", headers: {'Authorization': `Bearer ${token}`}})
+        fetch('http://api.dg.lazyprojects.com/sites' + condition, {method: "GET", headers: {'Authorization': `Bearer ${getCookie('token')}`}})
             .then((response) => {
                 if (response.status == 200) {
                     return response.json()

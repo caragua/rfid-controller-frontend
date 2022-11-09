@@ -5,9 +5,15 @@ export function DropDownOptions(props) {
         options = props.codes[props.name];
     }
     else if (props.items) {
-        // options = {}
-        // props.items.map(item => options[item.id] = `${item.name} (${item.location})`);
-        options = props.items;
+        if (props.name) {
+            options = {}
+            Object.keys(props.items).map(key => {
+                options[key] = props.items[key][props.name];
+            });
+        }
+        else {
+            options = props.items;
+        }
     }
     else {
         return false;

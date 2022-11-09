@@ -10,6 +10,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import { DropDownOptions } from '../Common';
+import { getCookie } from '../../common.js';
 
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 
@@ -20,12 +21,10 @@ class Details extends React.Component {
         this.state = {
             codes: null,
 
-            serial: '',
-            nickname: '',
-            systemName: '',
-            purpose: 0,
-            data: '',
-            status: 1
+            mac_address:    '',
+            nickname:       '',
+            usage:          0,
+            data:           '',
         }
 
         this.cardReaderId = 'new';
@@ -60,18 +59,24 @@ class Details extends React.Component {
         });
     }
 
-    handleSubmit (event) {
+    handleSubmit (event) {        
+        let data = new URLSearchParams();
+        data.append('mac_address',  this.state.mac_address);
+        data.append('nickname',     this.state.nickname);
+        data.append('usage',        this.state.usage);
+        data.append('data',         this.state.data);
+
         if (this.cardReaderId == "new"){
-            fetch("http://api.rfid-demo.lazyprojects.com/v1/cardReaders/", {
-                method: "post",
-                body: JSON.stringify({
-                    serial:         this.state.serial,
-                    nickname:       this.state.nickname,
-                    systemName:     this.state.systemName,
-                    purpose:        this.state.purpose,
-                    data:           this.state.data
-                })
-            })            
+            fetch("http://api.dg.lazyprojects.com/cardReaders/", {
+                method: "POST",
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${getCookie('token')}`,
+                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+                },
+                body: data
+            })             
             .then((response) => {
                 if (response.status == 200) {
                     this.reloadData();
@@ -79,18 +84,17 @@ class Details extends React.Component {
                 }
             });
         }
-        else {            
-            fetch("http://api.rfid-demo.lazyprojects.com/v1/cardReaders/" + this.cardReaderId, {
-                method: "put",
-                body: JSON.stringify({
-                    serial:         this.state.serial,
-                    nickname:       this.state.nickname,
-                    systemName:     this.state.systemName,
-                    purpose:        this.state.purpose,
-                    data:           this.state.data,
-                    status:         this.state.status
-                })
-            })             
+        else {             
+            fetch(`http://api.dg.lazyprojects.com/cardReaders/${this.cardReaderId}`, {
+                method: "PUT",
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${getCookie('token')}`,
+                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+                },
+                body: data
+            })            
             .then((response) => {
                 if (response.status == 200) {
                     this.reloadData();
@@ -110,7 +114,7 @@ class Details extends React.Component {
         if (!this.isloading) {
             this.isloading = true;
             if (cardReaderId == 'new') {
-                this.loadData('/?codes');
+                this.loadData('/options');
             }
             else {
                 this.loadData('/' + cardReaderId);
@@ -119,29 +123,27 @@ class Details extends React.Component {
     }
 
     loadData(condition) {
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/cardReaders' + condition)
-            .then((response) => {
-                if (response.status == 200) {
-                    return response.json()
-                }
-            })
-            .then((data) => {
-                if (this.cardReaderId == 'new') {
-                    this.setState({ codes: data.codes});
-                }
-                else {
-                    this.setState({
-                        codes: data.codes,
+        fetch('http://api.dg.lazyprojects.com/cardReaders' + condition, {method: "GET", headers: {'Authorization': `Bearer ${getCookie('token')}`}})
+        .then((response) => {
+            if (response.status == 200) {
+                return response.json()
+            }
+        })
+        .then((res) => {
+            if (this.cardReaderId == 'new') {
+                this.setState({ codes: res.codes});
+            }
+            else {
+                this.setState({
+                    codes: res.codes,
 
-                        serial:         data.cardReader.serial,
-                        nickname:       data.cardReader.nickname,
-                        systemName:     data.cardReader.systemName,
-                        purpose:        data.cardReader.purpose,
-                        data:           data.cardReader.data,
-                        status:         data.cardReader.status
-                    });
-                }
-            });
+                    mac_address:    res.data.mac_address,
+                    nickname:       res.data.nickname,
+                    usage:          res.data.usage,
+                    data:           res.data.data,
+                });
+            }
+        });
     }
 
     render() {
@@ -165,9 +167,9 @@ class Details extends React.Component {
                                 <Row className="mb-3">
                                     <Col>
                                         <Form.Group>
-                                            <Form.Label>編號</Form.Label>
+                                            <Form.Label>MAC</Form.Label>
                                             <InputGroup>
-                                                <Form.Control name="serial" value={this.state.serial} onChange={this.handleChange} />
+                                                <Form.Control name="mac_address" value={this.state.mac_address} onChange={this.handleChange} />
                                             </InputGroup>
                                         </Form.Group>
                                     </Col>
@@ -185,19 +187,9 @@ class Details extends React.Component {
                                 <Row className="mb-3">
                                     <Col>
                                         <Form.Group>
-                                            <Form.Label>識別名稱（限英文）</Form.Label>
-                                            <InputGroup>
-                                                <Form.Control name="systemName" value={this.state.systemName} onChange={this.handleChange} />
-                                            </InputGroup>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
                                             <Form.Label>用途</Form.Label>
-                                            <Form.Select name="purpose" value={this.state.purpose} onChange={this.handleChange} >
-                                                <DropDownOptions codes={this.state.codes} name="purpose"/>
+                                            <Form.Select name="usage" value={this.state.usage} onChange={this.handleChange} >
+                                                <DropDownOptions codes={this.state.codes} name="usage"/>
                                             </Form.Select>
                                         </Form.Group>
                                     </Col>
@@ -209,17 +201,6 @@ class Details extends React.Component {
                                             <InputGroup>
                                                 <Form.Control name="data" value={this.state.data} onChange={this.handleChange} />
                                             </InputGroup>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <hr />
-                                <Row className="mb-3">
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.Label>狀態</Form.Label>
-                                            <Form.Select name="status" value={this.state.status} onChange={this.handleChange} disabled={this.cardReaderId == 'new'} >
-                                                <DropDownOptions codes={this.state.codes} name="status"/>
-                                            </Form.Select>
                                         </Form.Group>
                                     </Col>
                                 </Row>

@@ -5,19 +5,17 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import { FaSearch } from 'react-icons/fa';
 import { Outlet, useNavigate } from "react-router-dom";
 import Table from 'react-bootstrap/Table';
+import { getCookie } from '../../common.js';
 
 function ReaderRow(props) {
     const navigate = useNavigate();
 
     return (
         <tr onClick={() => navigate("/cardReaders/" + props.data.id)}>
-            <td>{props.codes.status[props.data.status]}</td>
-            <td>{props.data.serial}</td>
+            <td>{props.data.mac_address}</td>
             <td>{props.data.nickname}</td>
-            <td>{props.data.systemName}</td>
-            <td>{props.codes.purpose[props.data.purpose]}</td>
+            <td>{props.codes.usage[props.data.usage]}</td>
             <td>{props.data.data}</td>
-            <td>最後回報時間</td>
         </tr>
     );
 }
@@ -27,7 +25,7 @@ function ReaderRows(props){
         return (
             <>
                 {
-                    props.data.cardReaders.map((item, index) => {
+                    props.data.data.map((item, index) => {
                         return <ReaderRow key={index} data={item} codes={props.data.codes} />
                     })
                 }
@@ -59,15 +57,23 @@ class Readers extends React.Component {
     }
 
     loadData() {
-        fetch('http://api.rfid-demo.lazyprojects.com/v1/cardReaders')
-            .then((response) => {
-                if (response.status == 200) {
-                    return response.json()
-                }
-            })
-            .then((data) => {
-                this.setState({ data: data });
-            });
+        fetch('http://api.dg.lazyprojects.com/cardReaders', {
+            method: "GET", 
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${getCookie('token')}`,
+                'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+            }
+        })
+        .then((response) => {
+            if (Math.floor(response.status / 100) == 2) {
+                return response.json()
+            }
+        })
+        .then((data) => {
+            this.setState({ data: data });
+        });
     }
 
     render() {
@@ -95,13 +101,10 @@ class Readers extends React.Component {
                     <Table striped bordered hover>
                         <thead>
                             <tr>
-                                <th>狀態</th>
-                                <th>編號</th>
-                                <th>暱稱</th>
+                                <th>MAC</th>
                                 <th>識別名稱</th>
                                 <th>用途</th>
                                 <th>設定內容</th>
-                                <th>最後回報時間</th>
                             </tr>
                         </thead>
                         <tbody>
