@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Children } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
@@ -14,12 +14,22 @@ import { getCookie } from '../../common.js';
 
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 
+function ShowDataOption ( props ) {
+    if ((!props.exceptFor && props.value == props.target) || (!props.target && props.value != props.exceptFor)) {
+        return props.children;
+    }
+    else {
+        return false;
+    }
+}
+
 class Details extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            codes: null,
+            codes:          null,
+            accessRules:    null,
 
             mac_address:    '',
             nickname:       '',
@@ -131,11 +141,17 @@ class Details extends React.Component {
         })
         .then((res) => {
             if (this.cardReaderId == 'new') {
-                this.setState({ codes: res.codes});
+                this.setState({ codes: res.codes, accessRules: res.accessRules });
             }
             else {
+                if (!res.data.data)
+                {
+                    res.data.data = '';
+                }
+
                 this.setState({
-                    codes: res.codes,
+                    codes:          res.codes,
+                    accessRules:    res.accessRules,
 
                     mac_address:    res.data.mac_address,
                     nickname:       res.data.nickname,
@@ -194,13 +210,23 @@ class Details extends React.Component {
                                         </Form.Group>
                                     </Col>
                                 </Row>
-                                <Row className="mb-3">
+                                <Row className="mb-3" >
                                     <Col>
-                                        <Form.Group>
-                                            <Form.Label>設定內容</Form.Label>
-                                            <InputGroup>
-                                                <Form.Control name="data" value={this.state.data} onChange={this.handleChange} />
-                                            </InputGroup>
+                                        <Form.Group>         
+                                            <ShowDataOption value={this.state.usage} exceptFor="1" >
+                                                <Form.Label>參數</Form.Label>
+                                                <InputGroup>
+                                                    <Form.Control name="data" value={this.state.data} onChange={this.handleChange} />
+                                                </InputGroup>
+                                            </ShowDataOption>   
+                                            <ShowDataOption value={this.state.usage} target="1" >                          
+                                                <Form.Label>入場規則</Form.Label>
+                                                <InputGroup>
+                                                    <Form.Select name="data" value={this.state.data} onChange={this.handleChange} >
+                                                        <DropDownOptions items={this.state.accessRules} name="description"/>
+                                                    </Form.Select>
+                                                </InputGroup>
+                                            </ShowDataOption>                                     
                                         </Form.Group>
                                     </Col>
                                 </Row>

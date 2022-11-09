@@ -7,6 +7,15 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Table from 'react-bootstrap/Table';
 import { getCookie } from '../../common.js';
 
+function ReaderDataInfo (props) {
+    switch(props.usage) {
+        case 1:
+            return props.accessRules[props.data].description;
+        default:
+            return props.data;
+    }
+}
+
 function ReaderRow(props) {
     const navigate = useNavigate();
 
@@ -15,7 +24,7 @@ function ReaderRow(props) {
             <td>{props.data.mac_address}</td>
             <td>{props.data.nickname}</td>
             <td>{props.codes.usage[props.data.usage]}</td>
-            <td>{props.data.data}</td>
+            <td><ReaderDataInfo data={props.data.data} usage={props.data.usage} accessRules={props.accessRules} /></td>
         </tr>
     );
 }
@@ -26,7 +35,7 @@ function ReaderRows(props){
             <>
                 {
                     props.data.data.map((item, index) => {
-                        return <ReaderRow key={index} data={item} codes={props.data.codes} />
+                        return <ReaderRow key={index} data={item} codes={props.data.codes} accessRules={props.data.accessRules} />
                     })
                 }
             </>

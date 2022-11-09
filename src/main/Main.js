@@ -31,7 +31,7 @@ class Main extends React.Component {
                                 <MyNavLink to="/registration">報到</MyNavLink>
                                 <MyNavLink to="/attendees">參加者</MyNavLink>
                                 <MyNavLink to="/sites">場地</MyNavLink>
-                                <MyNavLink to="/accessRules">管制</MyNavLink>
+                                <MyNavLink to="/accessRules">入場控管</MyNavLink>
                                 <MyNavLink to="/cardReaders">讀卡機</MyNavLink>
                                 <MyNavLink to="/scans">感應記錄</MyNavLink>
                                 <MyNavLink to="/points">加扣點記錄</MyNavLink>
